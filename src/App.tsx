@@ -9,9 +9,13 @@ import {
   useReactFlow,
   useKeyPress,
   ConnectionMode,
+  getNodesBounds,
+  getViewportForBounds,
 } from '@xyflow/react';
 import { v4 as uuidv4 } from 'uuid';
-import { Store, Plus, MousePointer2, Type, Link as LinkIcon, Settings, Compass, Trash2, Search, Layers, ChevronRight, Download, Upload, Image as ImageIcon } from 'lucide-react';
+import { Store, Plus, MousePointer2, Type, Link as LinkIcon, Settings, Compass, Trash2, Search, Layers, ChevronRight, Download, Upload, Image as ImageIcon, Camera, FileText, Undo, Redo, Activity } from 'lucide-react';
+import { toPng } from 'html-to-image';
+import jsPDF from 'jspdf';
 
 import { useStore, AppNode, NoteData } from './store';
 import { TextNode } from './components/TextNode';
@@ -27,13 +31,16 @@ const nodeTypes = {
 };
 
 function Flow() {
-  const { onNodesChange, onEdgesChange, onConnect, addNode, minimapVisible, toggleMinimap, spaces, currentSpaceId, enterSpace, settings, fullscreenImage, setFullscreenImage } = useStore();
+  const { onNodesChange, onEdgesChange, onConnect, addNode, minimapVisible, toggleMinimap, spaces, currentSpaceId, enterSpace, settings, fullscreenImage, setFullscreenImage, undo, redo, past, future, activityLog } = useStore();
   const nodes = (spaces && currentSpaceId && spaces[currentSpaceId]) ? spaces[currentSpaceId].nodes : [];
-  const edges = (spaces && currentSpaceId && spaces[currentSpaceId]) ? spaces[currentSpaceId].edges : [];
+  const edges = (spaces && currentSpaceId && spaces[currentSpaceId]) 
+    ? spaces[currentSpaceId].edges.map(e => ({ ...e, animated: settings?.animatedEdges || false, style: { stroke: '#f97316', strokeWidth: 2 } })) 
+    : [];
   const reactFlow = useReactFlow();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [activityLogOpen, setActivityLogOpen] = useState(false);
   
   // Create node at center of current view
   const createNode = useCallback(
@@ -154,6 +161,69 @@ function Flow() {
     input.click();
   };
 
+  const downloadImage = () => {
+    const nodesBounds = getNodesBounds(nodes);
+    const viewport = getViewportForBounds(
+      nodesBounds,
+      1920,
+      1080,
+      0.5,
+      2,
+      0.1
+    );
+
+    const viewportNode = document.querySelector('.react-flow__viewport') as HTMLElement;
+    if (!viewportNode) return;
+
+    toPng(viewportNode, {
+      backgroundColor: '#09090b',
+      width: 1920,
+      height: 1080,
+      pixelRatio: 2,
+      style: {
+        width: '1920px',
+        height: '1080px',
+        transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
+      },
+    }).then((dataUrl) => {
+      const a = document.createElement('a');
+      a.setAttribute('download', 'threadspacex-canvas.png');
+      a.setAttribute('href', dataUrl);
+      a.click();
+    });
+  };
+
+  const downloadPdf = () => {
+    const nodesBounds = getNodesBounds(nodes);
+    const viewport = getViewportForBounds(
+      nodesBounds,
+      1920,
+      1080,
+      0.5,
+      2,
+      0.1
+    );
+
+    const viewportNode = document.querySelector('.react-flow__viewport') as HTMLElement;
+    if (!viewportNode) return;
+
+    toPng(viewportNode, {
+      backgroundColor: '#09090b',
+      width: 1920,
+      height: 1080,
+      pixelRatio: 2,
+      style: {
+        width: '1920px',
+        height: '1080px',
+        transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
+      },
+    }).then((dataUrl) => {
+      const pdf = new jsPDF('landscape', 'px', [1920, 1080]);
+      pdf.addImage(dataUrl, 'PNG', 0, 0, 1920, 1080);
+      pdf.save('threadspacex-canvas.pdf');
+    });
+  };
+
   return (
     <>
       <ReactFlow
@@ -162,6 +232,7 @@ function Flow() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onNodeDragStart={() => useStore.getState().saveHistory()}
         nodeTypes={nodeTypes}
         fitView
         fitViewOptions={{ padding: 0.5 }}
@@ -172,7 +243,11 @@ function Flow() {
         connectionMode={ConnectionMode.Loose}
         snapToGrid={settings?.snapToGrid}
         snapGrid={[20, 20]}
-        defaultEdgeOptions={{ type: 'smoothstep', animated: false }}
+        defaultEdgeOptions={{ 
+          type: 'smoothstep', 
+          animated: settings?.animatedEdges || false,
+          style: { stroke: '#f97316', strokeWidth: 2 }
+        }}
       >
         <Background gap={40} size={1} color="rgba(255,255,255,0.05)" />
         
@@ -231,6 +306,49 @@ function Flow() {
                   <Download size={14} className="text-starlight" />
                   <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-space-800 text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-white/10 pointer-events-none">Export JSON</span>
                 </button>
+
+                <button 
+                  onClick={downloadImage}
+                  className="glass-panel w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors tooltip group relative"
+                >
+                  <Camera size={14} className="text-starlight" />
+                  <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-space-800 text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-white/10 pointer-events-none">Export Image</span>
+                </button>
+
+                <button 
+                  onClick={downloadPdf}
+                  className="glass-panel w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors tooltip group relative"
+                >
+                  <FileText size={14} className="text-starlight" />
+                  <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-space-800 text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-white/10 pointer-events-none">Export PDF</span>
+                </button>
+
+                <button 
+                  onClick={() => undo()}
+                  disabled={past.length === 0}
+                  className={`glass-panel w-8 h-8 rounded-full flex items-center justify-center transition-colors tooltip group relative ${past.length === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white/10'}`}
+                >
+                  <Undo size={14} className="text-starlight" />
+                  <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-space-800 text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-white/10 pointer-events-none z-50">Undo</span>
+                </button>
+
+                <button 
+                  onClick={() => redo()}
+                  disabled={future.length === 0}
+                  className={`glass-panel w-8 h-8 rounded-full flex items-center justify-center transition-colors tooltip group relative ${future.length === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white/10'}`}
+                >
+                  <Redo size={14} className="text-starlight" />
+                  <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-space-800 text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-white/10 pointer-events-none z-50">Redo</span>
+                </button>
+
+                <button 
+                  onClick={() => setActivityLogOpen(true)}
+                  className="glass-panel w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors tooltip group relative"
+                >
+                  <Activity size={14} className="text-starlight" />
+                  <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-space-800 text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-white/10 pointer-events-none z-50">Activity Log</span>
+                </button>
+
                 <button 
                   onClick={() => setSettingsOpen(true)}
                   className="glass-panel w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors tooltip group relative"
@@ -324,6 +442,17 @@ function Flow() {
                   <div className="w-11 h-6 bg-space-700/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
                 </div>
               </label>
+
+              <label className="flex items-center justify-between cursor-pointer group">
+                <div>
+                  <div className="text-sm text-starlight">Animated Edges</div>
+                  <div className="text-xs text-starlight-dim mt-1 max-w-[250px]">Show moving dashed lines on connection edges.</div>
+                </div>
+                <div className="relative inline-flex items-center">
+                  <input type="checkbox" className="sr-only peer" checked={settings.animatedEdges} onChange={(e) => useStore.getState().updateSettings({ animatedEdges: e.target.checked })} />
+                  <div className="w-11 h-6 bg-space-700/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                </div>
+              </label>
             </div>
 
             <div className="mt-8 flex justify-end">
@@ -340,6 +469,44 @@ function Flow() {
            <button className="absolute top-8 right-8 text-white/50 hover:text-white p-2" onClick={() => setFullscreenImage(null)}>
              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
            </button>
+        </div>
+      )}
+
+      {/* Activity Log Modal */}
+      {activityLogOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget) setActivityLogOpen(false); }}>
+          <div className="glass-panel w-full max-w-lg max-h-[80vh] flex flex-col rounded-2xl border border-white/10 overflow-hidden shadow-2xl">
+            <div className="p-6 border-b border-white/10 flex items-center justify-between shrink-0">
+              <h2 className="text-xl font-serif text-starlight flex items-center gap-2">
+                <Activity size={18} className="text-orange-500" />
+                Activity Log
+              </h2>
+              <button onClick={() => useStore.getState().clearLog()} className="text-xs text-starlight-dim hover:text-white px-3 py-1 rounded bg-white/5 hover:bg-white/10 transition-colors">Clear</button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-2">
+              {activityLog.length === 0 ? (
+                <div className="p-8 text-center text-starlight-dim text-sm italic">No recent activity.</div>
+              ) : (
+                <div className="space-y-1">
+                  {activityLog.map((log) => (
+                    <div key={log.id} className="flex items-start gap-4 p-3 hover:bg-white/5 rounded-xl transition-colors">
+                      <div className="text-[10px] text-starlight-dim/60 font-mono w-16 pt-0.5 shrink-0">
+                        {new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date(log.timestamp))}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm text-starlight">{log.action}</div>
+                        <div className="text-[10px] text-starlight-dim mt-0.5">Space: {spaces[log.spaceId]?.name || log.spaceId}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="p-4 border-t border-white/10 bg-black/20 flex justify-end shrink-0">
+              <button onClick={() => setActivityLogOpen(false)} className="px-4 py-2 bg-space-800 text-white rounded-lg text-sm font-medium hover:bg-space-700 transition-colors">Close</button>
+            </div>
+          </div>
         </div>
       )}
     </>

@@ -1,6 +1,7 @@
-import { Handle, Position, NodeResizer } from '@xyflow/react';
+import { NodeResizer } from '@xyflow/react';
 import { NoteData } from '../store';
 import { motion } from 'motion/react';
+import { NodeHandles } from './NodeHandles';
 
 export function TextNode({ data, selected }: { data: NoteData; selected: boolean }) {
   return (
@@ -15,7 +16,7 @@ export function TextNode({ data, selected }: { data: NoteData; selected: boolean
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className={`glass-panel p-6 flex flex-col rounded-2xl w-full h-full transition-all duration-300 ${
+        className={`glass-panel p-6 flex flex-col rounded-2xl w-full h-full transition-all duration-300 group ${
           selected ? 'ring-1 ring-orange-500 shadow-[0_8px_32px_rgba(249,115,22,0.3)] border-orange-500/50' : ''
         }`}
         style={{
@@ -25,8 +26,7 @@ export function TextNode({ data, selected }: { data: NoteData; selected: boolean
           minHeight: 150
         }}
       >
-      <Handle type="target" position={Position.Top} className="!w-3 !h-3 !bg-space-800 !border-2 !border-starlight opacity-0 group-hover:opacity-100 transition-opacity" />
-      <Handle type="target" position={Position.Left} className="!w-3 !h-3 !bg-space-800 !border-2 !border-starlight opacity-0 group-hover:opacity-100 transition-opacity" />
+      <NodeHandles />
       
       {data.label && (
         <div className="flex justify-between items-start mb-4">
@@ -38,9 +38,6 @@ export function TextNode({ data, selected }: { data: NoteData; selected: boolean
       <div className={`text-xl leading-tight text-zinc-100 flex-1 overflow-auto pointer-events-auto ${data.label ? 'serif-italic mb-2' : 'font-light'}`}>
         {data.text || <span className="opacity-40 italic font-light text-sm">Empty note...</span>}
       </div>
-
-      <Handle type="source" position={Position.Bottom} className="!w-3 !h-3 !bg-space-800 !border-2 !border-starlight opacity-0 group-hover:opacity-100 transition-opacity" />
-      <Handle type="source" position={Position.Right} className="!w-3 !h-3 !bg-space-800 !border-2 !border-starlight opacity-0 group-hover:opacity-100 transition-opacity" />
     </motion.div>
     </>
   );

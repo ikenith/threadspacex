@@ -1,7 +1,8 @@
-import { Handle, Position, NodeResizer } from '@xyflow/react';
+import { NodeResizer } from '@xyflow/react';
 import { NoteData, useStore } from '../store';
 import { motion } from 'motion/react';
 import { Maximize2, Layers } from 'lucide-react';
+import { NodeHandles } from './NodeHandles';
 
 export function CanvasNode({ data, id, selected }: { data: NoteData; id: string; selected: boolean }) {
   const enterSpace = useStore((state) => state.enterSpace);
@@ -24,8 +25,7 @@ export function CanvasNode({ data, id, selected }: { data: NoteData; id: string;
         }`}
         onDoubleClick={() => enterSpace(id, data.label || 'Sub-Space')}
       >
-      <Handle type="target" position={Position.Top} className="!w-3 !h-3 !bg-space-800 !border-2 !border-starlight opacity-0 group-hover:opacity-100 transition-opacity" />
-      <Handle type="target" position={Position.Left} className="!w-3 !h-3 !bg-space-800 !border-2 !border-starlight opacity-0 group-hover:opacity-100 transition-opacity" />
+      <NodeHandles />
       
       <div className="text-center py-4">
         <div className="text-[10px] font-mono opacity-40 uppercase mb-4">Sub-Space</div>
@@ -45,9 +45,6 @@ export function CanvasNode({ data, id, selected }: { data: NoteData; id: string;
       >
         <Maximize2 size={14} />
       </button>
-
-      <Handle type="source" position={Position.Bottom} className="!w-3 !h-3 !bg-space-800 !border-2 !border-starlight opacity-0 group-hover:opacity-100 transition-opacity" />
-      <Handle type="source" position={Position.Right} className="!w-3 !h-3 !bg-space-800 !border-2 !border-starlight opacity-0 group-hover:opacity-100 transition-opacity" />
     </motion.div>
     </>
   );

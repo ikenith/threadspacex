@@ -1,20 +1,51 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Threadspacex
 
-# Run and deploy your AI Studio app
+Threadspacex is a minimalist, artistic, and infinite-canvas thinking tool designed for deep idea exploration and visual knowledge mapping. 
 
-This contains everything you need to run your app locally.
+> Threadspacex gives you an endless canvas to structure thoughts, connect references, weave conceptual threads, and build a second brain without boundaries.
 
-View your app in AI Studio: https://ai.studio/apps/a8c38b6c-5106-4821-b2ca-89b430582f58
+## Features
 
-## Run Locally
+- **Infinite Nested Canvases:** Group ideas into infinite nested spaces. Double-click any canvas node to enter a deeper level of thought, and use breadcrumbs to navigate your visual hierarchy.
+- **Flexible Edge Connections:** Connect notes from anywhere. Nodes feature fine-grained connection handles that appear on hover, giving you perfect layout control.
+- **Multimedia Nodes:**
+  - **Text Notes:** Write robust markdown-friendly thoughts. Apply varied colors to categorize patterns instantly.
+  - **Rich Web Links:** Paste a URL, and Threadspacex automatically fetches stunning embedded previews and metadata via Microlink.
+  - **Images:** Snap or upload images directly into your canvas. Click on images to view them in a distraction-free fullscreen overlay.
+- **Smart Data Management:** 
+  - Entirely local-first. Your data is stored securely in IndexedDB so you never lose your flow.
+  - Never forget to back up again with proactive exit reminders.
+  - Export your canvas state to JSON to create manual snapshots, or Import existing states to continue working.
+  - Export beautiful PNG Images and PDFs of your canvas.
+- **Artistic Visual Identity:** Fluid animations, a starlight glowing dark theme, seamless glassmorphism components, and minimalist typography.
 
-**Prerequisites:**  Node.js
+## Getting Started
 
+1. Clone or download this project
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Run the development server:
+   ```bash
+   npm run dev
+   ```
+4. Open the application in your browser and start weaving your threads.
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Technology Stack
+
+- **React 18** and **Vite** for the underlying architecture.
+- **Tailwind CSS** for the slick, custom glassmorphic styling system.
+- **Zustand** for rock-solid reactive global state management and state persistence with IndexedDB.
+- **React Flow** power-charging the canvas and node interactions.
+- **Lucide React** for crisp, scalable system icons.
+- **Framer Motion** driving the fluid, spring-physics-based animations.
+
+## Usage Guide
+
+- **Pan canvas**: Click and drag empty space or hold Spacebar.
+- **Zoom canvas**: Scroll up and down or use pinch gestures on a trackpad.
+- **Add nodes**: Use the floating toolbar at the bottom center to add Text Notes, URLs, empty Canvas Nodes, or to upload Images.
+- **Connect nodes**: Hover over any edge of a node to reveal connection points, and drag lines to establish relationships.
+- **Edit nodes**: Select a node to reveal the properties panel on the right. You can assign labels, tweak text, or add identifying colors.
+- **Search**: Press `CMD+K` / `CTRL+K` (or click the search button) to perform global searches for any of your notes across all nested spaces.

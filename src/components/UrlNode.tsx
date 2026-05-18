@@ -1,8 +1,9 @@
-import { Handle, Position, NodeResizer } from '@xyflow/react';
+import { NodeResizer } from '@xyflow/react';
 import { NoteData, useStore } from '../store';
 import { motion } from 'motion/react';
 import { ExternalLink, RefreshCw } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { NodeHandles } from './NodeHandles';
 
 export function UrlNode({ data, id, selected }: { data: NoteData; id: string; selected: boolean }) {
   const updateNodeData = useStore(state => state.updateNodeData);
@@ -62,8 +63,7 @@ export function UrlNode({ data, id, selected }: { data: NoteData; id: string; se
           selected ? 'ring-1 ring-orange-500 shadow-[0_8px_32px_rgba(249,115,22,0.3)] border-orange-500/50' : ''
         }`}
       >
-      <Handle type="target" position={Position.Top} className="!w-3 !h-3 !bg-space-800 !border-2 !border-starlight opacity-0 group-hover:opacity-100 transition-opacity" />
-      <Handle type="target" position={Position.Left} className="!w-3 !h-3 !bg-space-800 !border-2 !border-starlight opacity-0 group-hover:opacity-100 transition-opacity" />
+      <NodeHandles />
       
       {data.previewUrl ? (
         <div className="h-40 bg-zinc-900 border-b border-white/5 relative flex-shrink-0">
@@ -109,9 +109,6 @@ export function UrlNode({ data, id, selected }: { data: NoteData; id: string; se
       >
         <RefreshCw size={12} />
       </button>
-
-      <Handle type="source" position={Position.Bottom} className="!w-3 !h-3 !bg-space-800 !border-2 !border-starlight opacity-0 group-hover:opacity-100 transition-opacity" />
-      <Handle type="source" position={Position.Right} className="!w-3 !h-3 !bg-space-800 !border-2 !border-starlight opacity-0 group-hover:opacity-100 transition-opacity" />
     </motion.div>
     </>
   );

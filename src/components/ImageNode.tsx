@@ -1,8 +1,8 @@
-import { Handle, Position } from '@xyflow/react';
 import { NodeResizer } from '@xyflow/react';
 import { NoteData, useStore } from '../store';
 import { motion } from 'motion/react';
 import { Maximize2 } from 'lucide-react';
+import { NodeHandles } from './NodeHandles';
 
 export function ImageNode({ data, selected }: { data: NoteData; selected: boolean }) {
   const setFullscreenImage = useStore(state => state.setFullscreenImage);
@@ -24,8 +24,7 @@ export function ImageNode({ data, selected }: { data: NoteData; selected: boolea
           selected ? 'ring-1 ring-orange-500 shadow-[0_8px_32px_rgba(249,115,22,0.3)] border-orange-500/50' : ''
         }`}
       >
-        <Handle type="target" position={Position.Top} className="!w-3 !h-3 !bg-space-800 !border-2 !border-starlight opacity-0 group-hover:opacity-100 transition-opacity" />
-        <Handle type="target" position={Position.Left} className="!w-3 !h-3 !bg-space-800 !border-2 !border-starlight opacity-0 group-hover:opacity-100 transition-opacity" />
+        <NodeHandles />
 
         <div className="flex-1 w-full h-full overflow-hidden rounded-xl bg-black/50 border border-white/5 relative">
            {data.imageUrl ? (
@@ -42,9 +41,6 @@ export function ImageNode({ data, selected }: { data: NoteData; selected: boolea
              <div className="text-zinc-500 flex items-center justify-center w-full h-full font-mono text-xs uppercase relative">No Image</div>
            )}
         </div>
-
-        <Handle type="source" position={Position.Bottom} className="!w-3 !h-3 !bg-space-800 !border-2 !border-starlight opacity-0 group-hover:opacity-100 transition-opacity" />
-        <Handle type="source" position={Position.Right} className="!w-3 !h-3 !bg-space-800 !border-2 !border-starlight opacity-0 group-hover:opacity-100 transition-opacity" />
       </motion.div>
     </>
   );

@@ -37,7 +37,7 @@ export type NoteData = {
 
 export type AppNode = Node<NoteData>;
 
-interface SpaceData {
+export interface SpaceData {
   id: string;
   name: string;
   nodes: AppNode[];
@@ -47,7 +47,17 @@ interface SpaceData {
 export interface Settings {
   backupReminder: boolean;
   snapToGrid: boolean;
+  showActivityLog: boolean;
+  darkMode: boolean;
+  animatedEdges: boolean;
 }
+
+export type ActivityLogEntry = {
+  id: string;
+  action: string;
+  timestamp: number;
+  spaceId: string;
+};
 
 interface ThreadspaceState {
   spaces: Record<string, SpaceData>;
@@ -62,8 +72,8 @@ interface ThreadspaceState {
   deleteElements: (nodeIds: string[], edgeIds: string[]) => void;
   
   enterSpace: (spaceId: string, spaceName: string) => void;
-  goBackSpace: () => void; // maybe we need a history stack or breadcrumbs?
-  jumpToSpace?: (index: number) => void; // Adding this to type
+  goBackSpace: () => void;
+  jumpToSpace?: (index: number) => void;
   spaceHistory: { id: string; name: string }[];
   
   clearAll: () => void;
@@ -77,6 +87,18 @@ interface ThreadspaceState {
   
   fullscreenImage: string | null;
   setFullscreenImage: (url: string | null) => void;
+
+  // History & Undo/Redo
+  past: Record<string, SpaceData>[];
+  future: Record<string, SpaceData>[];
+  saveHistory: () => void;
+  undo: () => void;
+  redo: () => void;
+
+  // Activity Log
+  activityLog: ActivityLogEntry[];
+  addLogEntry: (action: string) => void;
+  clearLog: () => void;
 }
 
 const initialSpaceId = 'root';
@@ -91,6 +113,63 @@ export const useStore = create<ThreadspaceState>()(
       spaceHistory: [{ id: initialSpaceId, name: 'Root' }],
       
       minimapVisible: false,
+
+      past: [],
+      future: [],
+      activityLog: [],
+
+      saveHistory: () => {
+        const state = get();
+        // keep last 50 states
+        const newPast = [...state.past, state.spaces].slice(-50);
+        set({ past: newPast, future: [] });
+      },
+
+      undo: () => {
+        const state = get();
+        if (state.past.length === 0) return;
+        
+        const previousSpaces = state.past[state.past.length - 1];
+        const newPast = state.past.slice(0, state.past.length - 1);
+        
+        set({
+          spaces: previousSpaces,
+          past: newPast,
+          future: [state.spaces, ...state.future],
+        });
+        get().addLogEntry('Undid last action');
+      },
+
+      redo: () => {
+        const state = get();
+        if (state.future.length === 0) return;
+        
+        const nextSpaces = state.future[0];
+        const newFuture = state.future.slice(1);
+        
+        set({
+          spaces: nextSpaces,
+          past: [...state.past, state.spaces],
+          future: newFuture,
+        });
+        get().addLogEntry('Redid action');
+      },
+
+      addLogEntry: (action: string) => {
+        const state = get();
+        const entry: ActivityLogEntry = {
+          id: uuidv4(),
+          action,
+          timestamp: Date.now(),
+          spaceId: state.currentSpaceId,
+        };
+        // keep last 100 entries
+        set({ activityLog: [entry, ...state.activityLog].slice(0, 100) });
+      },
+
+      clearLog: () => {
+        set({ activityLog: [] });
+      },
 
       onNodesChange: (changes: NodeChange[]) => {
         const state = get();
@@ -113,6 +192,12 @@ export const useStore = create<ThreadspaceState>()(
         const currentSpace = (state.spaces || {})[state.currentSpaceId];
         if (!currentSpace) return;
 
+        // If it's a structural change (remove), then we save history
+        const hasRemoves = changes.some(c => c.type === 'remove');
+        if (hasRemoves) {
+          get().saveHistory();
+        }
+
         set({
           spaces: {
             ...state.spaces,
@@ -122,12 +207,18 @@ export const useStore = create<ThreadspaceState>()(
             }
           }
         });
+        
+        if (hasRemoves) {
+          get().addLogEntry(`Removed edges`);
+        }
       },
 
       onConnect: (connection: Connection) => {
         const state = get();
         const currentSpace = (state.spaces || {})[state.currentSpaceId];
         if (!currentSpace) return;
+
+        get().saveHistory();
 
         set({
           spaces: {
@@ -138,6 +229,7 @@ export const useStore = create<ThreadspaceState>()(
             }
           }
         });
+        get().addLogEntry(`Connected nodes`);
       },
 
       addNode: (node: AppNode) => {
@@ -145,6 +237,8 @@ export const useStore = create<ThreadspaceState>()(
         const spaceId = state.currentSpaceId || initialSpaceId;
         const currentSpace = (state.spaces || {})[spaceId] || { id: spaceId, name: 'Root', nodes: [], edges: [] };
         
+        get().saveHistory();
+
         set({
           currentSpaceId: spaceId,
           spaces: {
@@ -155,6 +249,7 @@ export const useStore = create<ThreadspaceState>()(
             }
           }
         });
+        get().addLogEntry(`Added node: ${node.type}`);
       },
 
       updateNodeData: (id: string, data: Partial<NoteData>) => {
@@ -162,6 +257,8 @@ export const useStore = create<ThreadspaceState>()(
         const spaceId = state.currentSpaceId || initialSpaceId;
         const currentSpace = (state.spaces || {})[spaceId];
         if (!currentSpace) return;
+
+        get().saveHistory();
 
         set({
           spaces: {
@@ -177,6 +274,7 @@ export const useStore = create<ThreadspaceState>()(
             }
           }
         });
+        get().addLogEntry(`Updated node data`);
       },
 
       deleteElements: (nodeIds: string[], edgeIds: string[]) => {
@@ -184,6 +282,8 @@ export const useStore = create<ThreadspaceState>()(
         const spaceId = state.currentSpaceId || initialSpaceId;
         const currentSpace = (state.spaces || {})[spaceId];
         if (!currentSpace) return;
+
+        get().saveHistory();
 
         set({
           spaces: {
@@ -195,6 +295,7 @@ export const useStore = create<ThreadspaceState>()(
             }
           }
         });
+        get().addLogEntry(`Deleted ${nodeIds.length} nodes and ${edgeIds.length} edges`);
       },
       
       enterSpace: (spaceId: string, spaceName: string) => {
@@ -258,6 +359,9 @@ export const useStore = create<ThreadspaceState>()(
       settings: {
         backupReminder: true,
         snapToGrid: false,
+        showActivityLog: false,
+        darkMode: true,
+        animatedEdges: false,
       },
       updateSettings: (newSettings: Partial<Settings>) => {
         set({ settings: { ...get().settings, ...newSettings } });
