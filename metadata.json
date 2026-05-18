@@ -1,0 +1,6 @@
+{
+  "name": "threadspacex",
+  "description": "Minimalist artistic infinite-canvas thinking tool designed for deep idea exploration and visual knowledge mapping.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
