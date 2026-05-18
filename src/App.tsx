@@ -127,11 +127,24 @@ function Flow() {
     }
   };
 
+  const getFormattedDate = () => {
+    const d = new Date();
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
+  };
+
   const handleExport = () => {
     const state = useStore.getState();
-    const dataStr = JSON.stringify({ spaces: state.spaces }, null, 2);
+    const dataToExport = {
+      spaces: state.spaces,
+      settings: state.settings,
+      activityLog: state.activityLog,
+      past: state.past,
+      future: state.future,
+    };
+    const dataStr = JSON.stringify(dataToExport, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
-    const exportFileDefaultName = 'threadspace-backup.json';
+    const exportFileDefaultName = `threadspace-backup_${getFormattedDate()}.json`;
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
     linkElement.setAttribute('download', exportFileDefaultName);
@@ -150,7 +163,15 @@ function Flow() {
         try {
           const json = JSON.parse(event.target?.result as string);
           if (json.spaces) {
-            useStore.setState({ spaces: json.spaces, currentSpaceId: 'root', spaceHistory: [{id: 'root', name: 'Root'}] });
+            useStore.setState({ 
+              spaces: json.spaces, 
+              currentSpaceId: 'root', 
+              spaceHistory: [{id: 'root', name: 'Root'}],
+              ...(json.settings ? { settings: json.settings } : {}),
+              ...(json.activityLog ? { activityLog: json.activityLog } : {}),
+              ...(json.past ? { past: json.past } : {}),
+              ...(json.future ? { future: json.future } : {})
+            });
           }
         } catch (e) {
           alert('Invalid Threadspace file.');
@@ -175,6 +196,10 @@ function Flow() {
     const viewportNode = document.querySelector('.react-flow__viewport') as HTMLElement;
     if (!viewportNode) return;
 
+    if (settings?.exportSubSpaces) {
+      document.documentElement.classList.add('exporting-subspaces');
+    }
+
     toPng(viewportNode, {
       backgroundColor: '#09090b',
       width: 1920,
@@ -186,10 +211,18 @@ function Flow() {
         transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
       },
     }).then((dataUrl) => {
+      if (settings?.exportSubSpaces) {
+        document.documentElement.classList.remove('exporting-subspaces');
+      }
       const a = document.createElement('a');
-      a.setAttribute('download', 'threadspacex-canvas.png');
+      a.setAttribute('download', `threadspacex-canvas_${getFormattedDate()}.png`);
       a.setAttribute('href', dataUrl);
       a.click();
+    }).catch(err => {
+      console.error(err);
+      if (settings?.exportSubSpaces) {
+        document.documentElement.classList.remove('exporting-subspaces');
+      }
     });
   };
 
@@ -207,6 +240,10 @@ function Flow() {
     const viewportNode = document.querySelector('.react-flow__viewport') as HTMLElement;
     if (!viewportNode) return;
 
+    if (settings?.exportSubSpaces) {
+      document.documentElement.classList.add('exporting-subspaces');
+    }
+
     toPng(viewportNode, {
       backgroundColor: '#09090b',
       width: 1920,
@@ -218,9 +255,17 @@ function Flow() {
         transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
       },
     }).then((dataUrl) => {
+      if (settings?.exportSubSpaces) {
+        document.documentElement.classList.remove('exporting-subspaces');
+      }
       const pdf = new jsPDF('landscape', 'px', [1920, 1080]);
       pdf.addImage(dataUrl, 'PNG', 0, 0, 1920, 1080);
-      pdf.save('threadspacex-canvas.pdf');
+      pdf.save(`threadspacex-canvas_${getFormattedDate()}.pdf`);
+    }).catch(err => {
+      console.error(err);
+      if (settings?.exportSubSpaces) {
+        document.documentElement.classList.remove('exporting-subspaces');
+      }
     });
   };
 
@@ -450,6 +495,16 @@ function Flow() {
                 </div>
                 <div className="relative inline-flex items-center">
                   <input type="checkbox" className="sr-only peer" checked={settings.animatedEdges} onChange={(e) => useStore.getState().updateSettings({ animatedEdges: e.target.checked })} />
+                  <div className="w-11 h-6 bg-space-700/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                </div>
+              </label>
+              <label className="flex items-center justify-between cursor-pointer group">
+                <div>
+                  <div className="text-sm text-starlight">Show Sub-Space Content</div>
+                  <div className="text-xs text-starlight-dim mt-1 max-w-[250px]">Show a visual preview of nested nodes on the canvas and in exports.</div>
+                </div>
+                <div className="relative inline-flex items-center">
+                  <input type="checkbox" className="sr-only peer" checked={settings.exportSubSpaces} onChange={(e) => useStore.getState().updateSettings({ exportSubSpaces: e.target.checked })} />
                   <div className="w-11 h-6 bg-space-700/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
                 </div>
               </label>

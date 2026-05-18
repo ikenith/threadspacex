@@ -50,6 +50,7 @@ export interface Settings {
   showActivityLog: boolean;
   darkMode: boolean;
   animatedEdges: boolean;
+  exportSubSpaces: boolean;
 }
 
 export type ActivityLogEntry = {
@@ -362,6 +363,7 @@ export const useStore = create<ThreadspaceState>()(
         showActivityLog: false,
         darkMode: true,
         animatedEdges: false,
+        exportSubSpaces: false,
       },
       updateSettings: (newSettings: Partial<Settings>) => {
         set({ settings: { ...get().settings, ...newSettings } });
@@ -410,6 +412,9 @@ export const useStore = create<ThreadspaceState>()(
         currentSpaceId: state.currentSpaceId,
         spaceHistory: state.spaceHistory,
         settings: state.settings,
+        activityLog: state.activityLog,
+        past: state.past,
+        future: state.future,
       }),
     }
   )
